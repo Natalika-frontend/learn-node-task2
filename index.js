@@ -1,38 +1,45 @@
-const yargs = require('yargs');
-const pkg = require('./package.json');
-const {addNote, printNotes, removeNote} = require('./notes.controller');
+// это серверный js
 
-yargs.version(pkg.version);
+const express = require('express');
+const path = require('path');
+const {addNote, getNotes, removeNote, changeTitle} = require('./notes.controller');
+const chalk = require("chalk");
 
-yargs.command({
-    command: 'add',
-    describe: 'Add a new note to list',
-    builder: {
-        title: {
-            type: 'string',
-            describe: 'Note title',
-            demandOption: true
-        },
-    },
-    handler({ title }) {
-        addNote(title).catch(err => console.error(err));// добавила обработку ошибок
-    },
+const port = 3000;
+
+const app = express();
+
+app.set('view engine', 'ejs');
+app.set('views', 'pages');
+
+app.use(express.static(path.resolve(__dirname, 'public')));
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true,
+}));
+
+app.get('/', async (req, res) => {
+    res.render('index', {title: 'Express App', notes: await getNotes(), created: false});
 });
 
-yargs.command({
-    command: 'list',
-    describe: 'Print all notes',
-    async handler() {
-        printNotes().catch(err => console.error(err));// добавила обработку ошибок
-    }
+app.post('/', async (req, res) => {
+    await addNote(req.body.title);
+    res.render('index', {title: 'Express App', notes: await getNotes(), created: true});
 });
 
-yargs.command({
-    command: 'remove',
-    describe: 'Remove note by id',
-    async handler({ id }) {
-        removeNote(id).catch(err => console.error(err));// добавила обработку ошибок
-    }
+app.delete('/:id', async (req, res) => {
+    await removeNote(req.params.id);
+    res.render('index', {title: 'Express App', notes: await getNotes(), created: false});
 });
 
-yargs.parse();
+app.put('/:id', async (req, res) => {
+    const newTitle = req.body.title;
+
+    await changeTitle(req.params.id, newTitle);
+    res.json({success: true});
+    res.render('index', {title: 'Express App', notes: await getNotes(), created: false});
+});
+
+app.listen(port, () => {
+    console.log(chalk.yellowBright(`Server has been started on port ${port}...`))
+});

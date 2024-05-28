@@ -1,5 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
+const chalk = require('chalk');
 
 const notesPath = path.join(__dirname, 'db.json');
 
@@ -14,8 +15,8 @@ async function addNote(title) {
     notes.push(note);
 
     await fs.writeFile(notesPath, JSON.stringify(notes, null, 2));
-    const chalk = await import('chalk'); // заменила на динамический импорт
-    console.log(chalk.default.bgGreen('Note was added')); // добавила default
+
+    console.log(chalk.bgGreen('Note was added'));
 }
 
 async function getNotes() {
@@ -26,11 +27,9 @@ async function getNotes() {
 async function printNotes() {
     const notes = await getNotes();
 
-    const chalk = await import('chalk');
-
-    console.log(chalk.default.bgGray('Here is the list of notes: '));
+    console.log(chalk.bgGray('Here is the list of notes: '));
     notes.forEach((note) => {
-        console.log(chalk.default.cyan(note.id), chalk.default.magenta(note.title));
+        console.log(chalk.cyan(note.id), chalk.magenta(note.title));
     });
 };
 
@@ -40,8 +39,19 @@ async function removeNote(id) {
 
     await fs.writeFile(notesPath, JSON.stringify(updatedNotes, null, 2));
 
-    const chalk = await import('chalk');
-    console.log(chalk.default.bgMagenta('The note was successfully deleted'));
+    console.log(chalk.bgMagenta('The note was successfully deleted'));
 };
 
-module.exports = {addNote, printNotes, removeNote};
+async function changeTitle(id, newTitle) {
+    const notes = await getNotes();
+    const note = notes.find(note => note.id === id);
+
+    if (note) {
+        note.title = newTitle;
+        await fs.writeFile(notesPath, JSON.stringify(notes, null, 2));
+
+        console.log(chalk.bgBlue('The note title was successfully changed'));
+    }
+};
+
+module.exports = {addNote, getNotes, removeNote, changeTitle};
